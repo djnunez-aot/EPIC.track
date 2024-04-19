@@ -23,7 +23,7 @@ from api.schemas import response as res
 from api.services import StaffService
 from api.utils import auth, profiletime
 from api.utils.util import cors_preflight
-
+from api.utils.str import natural_sort
 
 API = Namespace("staffs", description="Staffs")
 
@@ -48,7 +48,12 @@ class Staffs(Resource):
         if positions:
             current_app.logger.info(f'Position ids are {positions}')
             staffs = StaffService.find_by_position_ids(positions)
-        return jsonify(res.StaffResponseSchema(many=True).dump(staffs)), HTTPStatus.OK
+        response = res.StaffResponseSchema(many=True).dump(staffs)
+        response = natural_sort(response, "full_name")
+        return (
+            jsonify(response),
+            HTTPStatus.OK,
+        )
 
     @staticmethod
     @cors.crossdomain(origin='*')

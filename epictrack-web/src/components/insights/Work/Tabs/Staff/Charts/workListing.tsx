@@ -23,6 +23,7 @@ import { WorkStaff } from "models/workStaff";
 import { set } from "lodash";
 import { Role, WorkStaffRole, WorkStaffRoleNames } from "models/role";
 import { useGetWorkStaffsQuery } from "services/rtkQuery/workStaffInsights";
+import { sort } from "utils";
 
 type WorkOrWorkStaff = Work | WorkStaff;
 

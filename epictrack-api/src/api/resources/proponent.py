@@ -22,7 +22,7 @@ from api.schemas import response as res
 from api.services import ProponentService
 from api.utils import auth, profiletime
 from api.utils.util import cors_preflight
-
+from api.utils.str import natural_sort
 
 API = Namespace("proponents", description="Proponent")
 
@@ -97,7 +97,12 @@ class Proponents(Resource):
     def get():
         """Return all proponents."""
         proponents = ProponentService.find_all_proponents()
-        return jsonify(res.ProponentResponseSchema(many=True).dump(proponents)), HTTPStatus.OK
+        response = res.ProponentResponseSchema(many=True).dump(proponents)
+        response = natural_sort(response, "name")
+        return (
+            jsonify(response),
+            HTTPStatus.OK,
+        )
 
     @staticmethod
     @cors.crossdomain(origin="*")
