@@ -22,7 +22,7 @@ from api.services.ministry import MinistryService
 from api.utils import auth, constants, profiletime
 from api.utils.caching import AppCache
 from api.utils.util import cors_preflight
-from api.utils.str import natural_sort
+
 
 API = Namespace('ministries', description='Ministries')
 
@@ -34,15 +34,10 @@ class Ministries(Resource):
 
     @staticmethod
     @cors.crossdomain(origin='*')
-    @auth.require   
+    @auth.require
     @AppCache.cache.cached(timeout=constants.CACHE_DAY_TIMEOUT, query_string=True)
     @profiletime
     def get():
         """Return all ministries."""
         ministries = MinistryService.find_all()
-        response = res.ListTypeResponseSchema(many=True).dump(ministries)
-        response = natural_sort(response, "name")
-        return (
-            jsonify(response),
-            HTTPStatus.OK,
-        )
+        return jsonify(res.ListTypeResponseSchema(many=True).dump(ministries)), HTTPStatus.OK

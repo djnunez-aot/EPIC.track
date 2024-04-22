@@ -18,12 +18,11 @@ from flask import jsonify, request
 from flask_restx import Namespace, Resource, cors
 
 from api.schemas import request as req
-from api.schemas import response as res
 from api.services.insights import InsightService
 from api.utils import auth, constants, profiletime
 from api.utils.caching import AppCache
 from api.utils.util import cors_preflight
-from api.utils.str import natural_sort
+
 
 API = Namespace("insights", description="Insights")
 
@@ -42,24 +41,7 @@ class Works(Resource):
         """Return work insights based on group by param."""
         args = req.WorkInsightRequestQueryParameterSchema().load(request.args)
         work_insights = InsightService.fetch_work_insights(args["group_by"])
-        response = res.WorkInsightResponseSchema(many=True).dump(work_insights)
-        if(args["group_by"] == "lead"):
-            response = natural_sort(response, "work_lead")
-        if(args["group_by"] == "staff"):
-            response = natural_sort(response, "staff")
-        if(args["group_by"] == "first_nation"):
-            response = natural_sort(response, "first_nation")
-        if(args["group_by"] == "team"):
-            response = natural_sort(response, "eao_team")
-        if(args['group_by' == 'federal_involvement']):
-            response = natural_sort(response, 'federal_involvement')
-        if(args['group_by' == 'ministry']):
-            response = natural_sort(response, 'ministry')
-        
-        return (
-            jsonify(work_insights),
-            HTTPStatus.OK,
-        )
+        return jsonify(work_insights), HTTPStatus.OK
 
 
 @cors_preflight("GET")
