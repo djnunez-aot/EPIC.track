@@ -116,7 +116,7 @@ const WorkList = () => {
             tooltip={row.original.title}
             titleText={row.original.title}
           >
-            {renderedCellValue}
+            {row.original.title}
           </ETGridTitle>
         ),
         sortingFn: "sortFn",
@@ -302,7 +302,7 @@ const WorkList = () => {
         Cell: ({ cell }) => (
           <span>
             {cell.getValue<boolean>() && <ETChip active label="Active" />}
-            {!cell.getValue<boolean>() && <ETChip error label="Inactive" />}
+            {!cell.getValue<boolean>() && <ETChip inactive label="Inactive" />}
           </span>
         ),
       },
