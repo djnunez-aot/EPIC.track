@@ -5,32 +5,49 @@ import {
   createMockMasterContext,
   mockStaffs,
 } from "../../../../cypress/support/common";
+import { AppConfig } from "config";
 import { setupIntercepts } from "../../../../cypress/support/utils";
 
 const endpoints = [
   {
+    name: "getActiveStaffsOptions",
     method: "OPTIONS",
-    url: "http://localhost:3200/api/v1/staffs?is_active=false",
+    url: `${AppConfig.apiUrl}staffs?is_active=false`,
   },
   {
+    name: "getPIPTypeOptions",
     method: "OPTIONS",
-    url: "http://localhost:3200/api/v1/codes/pip_org_types",
+    url: `${AppConfig.apiUrl}codes/pip_org_types`,
   },
-  { method: "OPTIONS", url: "http://localhost:3200/api/v1/first_nations" },
+
   {
-    method: "GET",
-    url: "http://localhost:3200/api/v1/staffs?is_active=false",
-    body: { data: mockStaffs },
-  },
-  {
-    method: "GET",
-    url: "http://localhost:3200/api/v1/codes/pip_org_types",
-    body: [],
+    name: "getFirstNationsOptions",
+    method: "OPTIONS",
+    url: `${AppConfig.apiUrl}first_nations`,
   },
   {
+    name: "getActiveStaffs",
     method: "GET",
-    url: "http://localhost:3200/api/v1/first_nations",
-    body: [],
+    url: `${AppConfig.apiUrl}staffs?is_active=false`,
+    response: { body: { data: mockStaffs } },
+  },
+  {
+    name: "getPIPType",
+    method: "GET",
+    url: `${AppConfig.apiUrl}codes/pip_org_types`,
+    response: { body: [] },
+  },
+  {
+    name: "getFirstNations",
+    method: "GET",
+    url: `${AppConfig.apiUrl}first_nations`,
+    response: { body: [] },
+  },
+  {
+    name: "getPositions",
+    method: "GET",
+    url: `${AppConfig.apiUrl}positions`,
+    response: { body: [] },
   },
 ];
 

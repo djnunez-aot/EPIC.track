@@ -7,6 +7,11 @@ import { searchFilter } from "components/shared/MasterTrackTable/filters";
 import TableFilter from "components/shared/filterSelect/TableFilter";
 import MasterTrackTable from "components/shared/MasterTrackTable";
 import { useGetWorksQuery } from "services/rtkQuery/workInsights";
+import { Link } from "react-router-dom";
+import { exportToCsv } from "components/shared/MasterTrackTable/utils";
+import { FileDownload } from "@mui/icons-material";
+import { IconButton, Tooltip, Box } from "@mui/material";
+import { sort } from "utils";
 import { ETGridTitle } from "components/shared";
 
 const WorkList = () => {
@@ -37,16 +42,22 @@ const WorkList = () => {
   React.useEffect(() => {
     Object.keys(codeTypes).forEach((key: string) => {
       let accessor = "name";
+      let sort_key = "sort_order";
+      if (key == "project") {
+        sort_key = "name";
+      }
       if (key == "ministry") {
         accessor = "abbreviation";
       }
-      const codes = works
+      sort_key = key + "." + sort_key;
+      const codes = sort([...works], sort_key)
         // eslint-disable-next-line @typescript-eslint/ban-ts-comment
         // @ts-ignore
         .map((w) => (w[key] ? w[key][accessor] : null))
         .filter(
           (ele, index, arr) => arr.findIndex((t) => t === ele) === index && ele
         );
+
       codeTypes[key](codes);
     });
   }, [works]);
@@ -63,6 +74,18 @@ const WorkList = () => {
         accessorKey: "title",
         header: "Name",
         size: 300,
+        Cell: ({ row, renderedCellValue }) => (
+          // <Link to={`/work-plan?work_id=${row.original.id}`}>
+          <ETGridTitle
+            to={`/work-plan?work_id=${row.original.id}`}
+            enableTooltip
+            tooltip={row.original.title}
+            titleText={row.original.title}
+          >
+            {renderedCellValue}
+          </ETGridTitle>
+          // </Link>
+        ),
         sortingFn: "sortFn",
         filterFn: searchFilter,
         Cell: ({ row, renderedCellValue }) => (
@@ -183,6 +206,29 @@ const WorkList = () => {
         showGlobalFilter: true,
         pagination: pagination,
       }}
+      renderTopToolbarCustomActions={({ table }) => (
+        <Box
+          sx={{
+            width: "100%",
+            display: "flex",
+            justifyContent: "right",
+          }}
+        >
+          <Tooltip title="Export to csv">
+            <IconButton
+              onClick={() =>
+                exportToCsv({
+                  table,
+                  downloadDate: new Date().toISOString(),
+                  filenamePrefix: "general-insights-listing",
+                })
+              }
+            >
+              <FileDownload />
+            </IconButton>
+          </Tooltip>
+        </Box>
+      )}
       enablePagination
       muiPaginationProps={{
         rowsPerPageOptions: rowsPerPageOptions(works.length),

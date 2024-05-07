@@ -10,6 +10,7 @@ import {
   mockStaffs,
   testTableFiltering,
 } from "../../../../cypress/support/common";
+import { AppConfig } from "config";
 import { setupIntercepts } from "../../../../cypress/support/utils";
 
 //ensure staffs are never the same by incrementing the counter
@@ -37,31 +38,38 @@ const staffs = [staff1, staff2];
 
 const endpoints = [
   {
+    name: "getActiveStaffsOptions",
     method: "OPTIONS",
-    url: "http://localhost:3200/api/v1/staffs?is_active=false",
+    url: `${AppConfig.apiUrl}staffs?is_active=false`,
   },
   {
+    name: "getPIPTypeOptions",
     method: "OPTIONS",
-    url: "http://localhost:3200/api/v1/codes/pip_org_types",
+    url: `${AppConfig.apiUrl}codes/pip_org_types`,
   },
+
   {
+    name: "getFirstNationsOptions",
     method: "OPTIONS",
-    url: "http://localhost:3200/api/v1/first_nations",
+    url: `${AppConfig.apiUrl}first_nations`,
   },
   {
+    name: "getInactiveStaffs",
     method: "GET",
-    url: "http://localhost:3200/api/v1/staffs?is_active=false",
-    body: { data: mockStaffs },
+    url: `${AppConfig.apiUrl}staffs?is_active=false`,
+    response: { body: { data: mockStaffs } },
   },
   {
+    name: "getPIPType",
     method: "GET",
-    url: "http://localhost:3200/api/v1/codes/pip_org_types",
-    body: [],
+    url: `${AppConfig.apiUrl}codes/pip_org_types`,
+    response: { body: [] },
   },
   {
+    name: "getFirstNations",
     method: "GET",
-    url: "http://localhost:3200/api/v1/first_nations",
-    body: [],
+    url: `${AppConfig.apiUrl}first_nations`,
+    response: { body: [] },
   },
 ];
 

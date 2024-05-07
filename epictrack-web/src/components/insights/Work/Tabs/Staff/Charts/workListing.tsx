@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useCallback, useEffect } from "react";
 import { MRT_ColumnDef } from "material-react-table";
 import { useAppSelector } from "hooks";
 import { hasPermission } from "components/shared/restricted";
@@ -12,6 +12,10 @@ import MasterTrackTable from "components/shared/MasterTrackTable";
 import { WorkStaff } from "models/workStaff";
 import { Role, WorkStaffRole, WorkStaffRoleNames } from "models/role";
 import { useGetWorkStaffsQuery } from "services/rtkQuery/workStaffInsights";
+import { exportToCsv } from "components/shared/MasterTrackTable/utils";
+import { FileDownload } from "@mui/icons-material";
+import { IconButton, Tooltip, Box } from "@mui/material";
+import { sort } from "utils";
 import { useGetWorksQuery } from "services/rtkQuery/workInsights";
 
 type WorkStaffWithWork = WorkStaff & { work: Work };
@@ -47,7 +51,7 @@ const WorkList = () => {
           return { ...workStaff, work };
         })
         .filter(Boolean) as WorkStaffWithWork[];
-      setWorkData(mergedData);
+      setWorkData(sort(mergedData, "work.title"));
       setPagination((prev) => ({
         ...prev,
         pageSize: workStaffs.length,
@@ -55,66 +59,76 @@ const WorkList = () => {
     }
   }, [workStaffs, works]);
 
-  const officerAnalysts = React.useMemo(() => {
-    if (!workStaffs) return [];
-    return workStaffs.flatMap((row: any) =>
-      row.staff
-        ? row.staff.filter(
-            (p: { role: Role }) => p.role.id === WorkStaffRole.OFFICER_ANALYST
+  const filteredStaffByPosition = useCallback(
+    (position: WorkStaffRole) => {
+      if (!workStaffs) return [];
+      const staff = workStaffs.flatMap((row: any) =>
+        row.staff
+          ? row.staff.filter((p: { role: Role }) => p.role.id === position)
+          : []
+      );
+      const staffSorted = sort(staff, "full_name");
+      const uniqueStaffNames = Array.from(
+        new Set(
+          staffSorted.map(
+            (staffEntry: any) =>
+              `${staffEntry.last_name}, ${staffEntry.first_name}`
           )
-        : []
-    );
-  }, [workStaffs]);
-
-  const officerAnalystOptions = React.useMemo(() => {
-    return Array.from(
-      new Set(
-        officerAnalysts.map(
-          (officerAnalyst: any) =>
-            `${officerAnalyst.first_name} ${officerAnalyst.last_name}`
         )
-      )
-    );
-  }, [officerAnalysts]);
+      );
+      return uniqueStaffNames;
+    },
+    [workStaffs]
+  );
+  const coLeadOptions = filteredStaffByPosition(WorkStaffRole.TEAM_CO_LEAD);
+  const officerAnalystOptions = filteredStaffByPosition(
+    WorkStaffRole.OFFICER_ANALYST
+  );
 
-  const officerFilterFunction = (row: any, id: any, filterValue: any) => {
+  const roleFilterFunction = (row: any, id: any, filterValue: any) => {
+    const options =
+      id === WorkStaffRoleNames[WorkStaffRole.OFFICER_ANALYST]
+        ? officerAnalystOptions
+        : coLeadOptions;
     if (
       !filterValue.length ||
-      filterValue.length > officerAnalystOptions.length // select all is selected
+      filterValue.length > options.length // select all is selected
     ) {
       return true;
     }
 
     const value: string = row.getValue(id) || "";
-
     // Split the cell value into individual names
     const names = value.split(", ");
 
     // Check if any name includes the filter value
-    return names.some((name) => filterValue.includes(name));
+    return filterValue.includes(value);
   };
-
+  const getRolfilterOptions = (role: WorkStaffRole) => {
+    return role === WorkStaffRole.OFFICER_ANALYST
+      ? officerAnalystOptions
+      : coLeadOptions;
+  };
   const tableColumns = React.useMemo(() => {
-    let cols: Array<MRT_ColumnDef<WorkStaffWithWork>> = [];
+    const cols: Array<MRT_ColumnDef<WorkStaffWithWork>> = [];
     if (workStaffs && workStaffs.length > 0) {
-      const rolename = WorkStaffRoleNames[WorkStaffRole.OFFICER_ANALYST];
-      cols = [
-        {
-          header: rolename,
-          filterSelectOptions: officerAnalystOptions,
+      const roles = [WorkStaffRole.TEAM_CO_LEAD, WorkStaffRole.OFFICER_ANALYST];
+      roles.forEach((role, index) => {
+        const roleName = WorkStaffRoleNames[role];
+        cols.push({
+          header: roleName,
+          id: `${WorkStaffRoleNames[role]}`,
+          filterSelectOptions: getRolfilterOptions(role),
           accessorFn: (row: any) => {
             if (!row.staff) {
               return "";
             }
-            const officerAnalystsForRow = row.staff.filter(
-              (p: { role: Role }) => p.role.id === WorkStaffRole.OFFICER_ANALYST
+            const staffRowWithRole = row.staff.filter(
+              (p: { role: Role }) => p.role.id === role
             );
-            return officerAnalystsForRow
-              .map(
-                (officerAnalyst: any) =>
-                  `${officerAnalyst.first_name} ${officerAnalyst.last_name}`
-              )
-              .join(", ");
+            return staffRowWithRole
+              .map((staff: any) => `${staff.last_name}, ${staff.first_name}`)
+              .join("; ");
           },
           Cell: ({ renderedCellValue }) => renderedCellValue,
           enableHiding: false,
@@ -132,15 +146,14 @@ const WorkList = () => {
               />
             );
           },
-          filterFn: officerFilterFunction,
-        } as MRT_ColumnDef<WorkStaffWithWork>,
-      ];
+          filterFn: roleFilterFunction,
+        });
+      });
     }
     setWorkRoles(cols);
   }, [workStaffs]);
 
   const codeTypes: { [x: string]: any } = {
-    work_type: setWorkTypes,
     eao_team: setTeams,
     work_lead: setLeads,
   };
@@ -149,10 +162,13 @@ const WorkList = () => {
     if (!workStaffs) return;
     Object.keys(codeTypes).forEach((key: string) => {
       let accessor = "name";
-      if (key == "work_lead" || key == "responsible_epd") {
+      let sort_key = "sort_order";
+      if (key == "work_lead") {
         accessor = "full_name";
+        sort_key = "full_name";
       }
-      const codes = workStaffs
+      sort_key = key + "." + sort_key;
+      const codes = sort([...workStaffs], sort_key)
         // eslint-disable-next-line @typescript-eslint/ban-ts-comment
         // @ts-ignore
         .map((w) => (w[key] ? w[key][accessor] : null))
@@ -264,6 +280,29 @@ const WorkList = () => {
         showGlobalFilter: true,
         pagination: pagination,
       }}
+      renderTopToolbarCustomActions={({ table }) => (
+        <Box
+          sx={{
+            width: "100%",
+            display: "flex",
+            justifyContent: "right",
+          }}
+        >
+          <Tooltip title="Export to csv">
+            <IconButton
+              onClick={() =>
+                exportToCsv({
+                  table,
+                  downloadDate: new Date().toISOString(),
+                  filenamePrefix: "staff-insights-listing",
+                })
+              }
+            >
+              <FileDownload />
+            </IconButton>
+          </Tooltip>
+        </Box>
+      )}
       enablePagination
       muiPaginationProps={{
         rowsPerPageOptions: rowsPerPageOptions(workStaffs?.length || 0),

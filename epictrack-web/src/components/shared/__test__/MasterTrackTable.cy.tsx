@@ -9,7 +9,6 @@ import {
   generateMockProject,
   testTableFiltering,
 } from "../../../../cypress/support/common";
-import { setupIntercepts } from "../../../../cypress/support/utils";
 import { defaultFirstNation } from "models/firstNation";
 import { MasterContext } from "components/shared/MasterContext";
 import { ETGridTitle } from "..";
@@ -18,6 +17,8 @@ import { MRT_ColumnDef } from "material-react-table";
 import { FirstNation } from "models/firstNation";
 import { MemoryRouter as Router } from "react-router-dom";
 import { Project } from "models/project";
+import { AppConfig } from "config";
+import { setupIntercepts } from "../../../../cypress/support/utils";
 
 // Mock reducer
 declare global {
@@ -28,28 +29,22 @@ declare global {
 
 const endpoints = [
   {
-    method: "OPTIONS",
-    url: "http://localhost:3200/api/v1/staffs?is_active=false",
-  },
-  {
-    method: "OPTIONS",
-    url: "http://localhost:3200/api/v1/pip-org-types",
-  },
-  { method: "OPTIONS", url: "http://localhost:3200/api/v1/first_nations" },
-  {
+    name: "getActiveStaffs",
     method: "GET",
-    url: "http://localhost:3200/api/v1/staffs?is_active=false",
-    body: { data: mockStaffs },
+    url: `${AppConfig.apiUrl}staffs?is_active=false`,
+    response: { body: { data: mockStaffs } },
   },
   {
+    name: "getPIPType",
     method: "GET",
-    url: "http://localhost:3200/api/v1/pip-org-types",
-    body: [],
+    url: `${AppConfig.apiUrl}pip-org-types`,
+    response: { body: [] },
   },
   {
+    name: "getFirstNations",
     method: "GET",
-    url: "http://localhost:3200/api/v1/first_nations",
-    body: [],
+    url: `${AppConfig.apiUrl}first_nations`,
+    response: { body: [] },
   },
 ];
 

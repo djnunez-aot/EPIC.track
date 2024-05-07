@@ -1,13 +1,21 @@
 import dateUtils from "./dateUtils";
+
 const sort = (collection: any[], sortField: string) => {
   const collator = new Intl.Collator("en-GB", {
     numeric: true,
     ignorePunctuation: true,
     sensitivity: "base",
   });
-  return collection.sort(function (a, b) {
-    return collator.compare(a[sortField], b[sortField]);
-  });
+  const keys = sortField.split(".");
+  if (keys && keys.length === 0) {
+    return collection.sort(function (a, b) {
+      return collator.compare(a[sortField], b[sortField]);
+    });
+  } else {
+    return collection.sort(function (a, b) {
+      return collator.compare(a[keys[0]][keys[1]], b[keys[0]][keys[1]]);
+    });
+  }
 };
 
 const groupBy = <T>(arr: T[], fn: (item: T) => any) => {

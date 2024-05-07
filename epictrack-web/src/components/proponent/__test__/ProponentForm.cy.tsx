@@ -3,6 +3,8 @@ import { MasterBase } from "models/type";
 import ProponentForm from "../ProponentForm";
 import { Staff } from "models/staff";
 import { defaultProponent } from "models/proponent";
+import { AppConfig } from "config";
+import { setupIntercepts } from "../../../../cypress/support/utils";
 
 const staffs: Staff[] = [
   {
@@ -32,28 +34,38 @@ const staffs: Staff[] = [
 
 const endpoints = [
   {
+    name: "getActiveStaffsOptions",
     method: "OPTIONS",
-    url: "http://localhost:3200/api/v1/staffs?is_active=false",
+    url: `${AppConfig.apiUrl}staffs?is_active=false`,
   },
   {
+    name: "getPIPTypeOptions",
     method: "OPTIONS",
-    url: "http://localhost:3200/api/v1/pip-org-types",
+    url: `${AppConfig.apiUrl}codes/pip_org_types`,
   },
-  { method: "OPTIONS", url: "http://localhost:3200/api/v1/first_nations" },
+
   {
-    method: "GET",
-    url: "http://localhost:3200/api/v1/staffs?is_active=false",
-    body: { data: staffs },
-  },
-  {
-    method: "GET",
-    url: "http://localhost:3200/api/v1/pip-org-types",
-    body: [],
+    name: "getFirstNationsOptions",
+    method: "OPTIONS",
+    url: `${AppConfig.apiUrl}first_nations`,
   },
   {
+    name: "getActiveStaffs",
     method: "GET",
-    url: "http://localhost:3200/api/v1/first_nations",
-    body: [],
+    url: `${AppConfig.apiUrl}staffs?is_active=false`,
+    response: { body: staffs },
+  },
+  {
+    name: "getPIPType",
+    method: "GET",
+    url: `${AppConfig.apiUrl}pip-org-types`,
+    response: { body: [] },
+  },
+  {
+    name: "getFirstNations",
+    method: "GET",
+    url: `${AppConfig.apiUrl}first_nations`,
+    response: { body: [] },
   },
 ];
 
@@ -79,17 +91,11 @@ function createMockContext() {
     setDialogProps: cy.stub(),
   };
 }
-function setupIntercepts(endpoints: any[]) {
-  endpoints.forEach(({ method, url, body }) => {
-    cy.intercept(method, url, { body });
-  });
-}
 
 describe("ProponentForm", () => {
   beforeEach(() => {
     const mockContext = createMockContext();
     setupIntercepts(endpoints);
-
     cy.mount(
       <MasterContext.Provider value={mockContext}>
         <ProponentForm />
