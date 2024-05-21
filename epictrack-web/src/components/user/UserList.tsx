@@ -12,11 +12,11 @@ import {
   Grid,
   Tooltip,
 } from "@mui/material";
-import { Edit } from "@mui/icons-material";
+import { Edit, FileDownload } from "@mui/icons-material";
 import { Group, User } from "../../models/user";
 import { RESULT_STATUS } from "../../constants/application-constant";
 import UserService from "../../services/userService";
-import { ETPageContainer } from "../shared";
+import { ETPageContainer, IButton } from "../shared";
 import Select from "react-select";
 import MasterTrackTable, {
   MaterialReactTableProps,
@@ -24,6 +24,11 @@ import MasterTrackTable, {
 import { UserGroupUpdate } from "../../services/userService/type";
 import { useAppSelector } from "../../hooks";
 import { searchFilter } from "components/shared/MasterTrackTable/filters";
+import { exportToCsv } from "components/shared/MasterTrackTable/utils";
+import Icons from "components/icons";
+import { IconProps } from "components/icons/type";
+
+const DownloadIcon: React.FC<IconProps> = Icons["DownloadIcon"];
 
 const UserList = () => {
   const [isValidGroup, setIsValidGroup] = React.useState<boolean>(true);
@@ -37,12 +42,7 @@ const UserList = () => {
     try {
       const userResult = await UserService.getUsers();
       if (userResult.status === 200) {
-        const sortedResults = (userResult.data as User[]).sort((a, b) => {
-          const aValue = a.group?.level ?? -0;
-          const bValue = b.group?.level ?? -0;
-          return bValue - aValue;
-        });
-        setUsers(sortedResults as never);
+        setUsers(userResult.data as never);
       }
     } catch (error) {
       console.error("User List: ", error);
@@ -101,7 +101,9 @@ const UserList = () => {
               menuPosition="fixed"
               getOptionValue={(opt) => opt.id}
               getOptionLabel={(opt) => opt.display_name}
-              options={groups.filter((p) => currentUserGroup.level >= p.level)}
+              options={groups
+                .filter((p) => currentUserGroup.level >= p.level)
+                .sort((a, b) => b.level - a.level)}
               required={true}
               // menuPortalTarget={document.body}
               onChange={(newVal) => setSelectedGroup(newVal)}
@@ -123,7 +125,7 @@ const UserList = () => {
         ),
       },
     ],
-    [groups, isValidGroup]
+    [groups, isValidGroup, selectedGroup]
   );
 
   const handleCancelRowEdits = () => {
@@ -171,7 +173,7 @@ const UserList = () => {
             initialState={{
               sorting: [
                 {
-                  id: "group.level",
+                  id: "name",
                   desc: false,
                 },
               ],
@@ -198,6 +200,29 @@ const UserList = () => {
                 </>
               );
             }}
+            renderTopToolbarCustomActions={({ table }) => (
+              <Box
+                sx={{
+                  width: "100%",
+                  display: "flex",
+                  justifyContent: "right",
+                }}
+              >
+                <Tooltip title="Export to csv">
+                  <IButton
+                    onClick={() =>
+                      exportToCsv({
+                        table,
+                        downloadDate: new Date().toISOString(),
+                        filenamePrefix: "users-listing",
+                      })
+                    }
+                  >
+                    <DownloadIcon className="icon" />
+                  </IButton>
+                </Tooltip>
+              </Box>
+            )}
           />
         </Grid>
       </ETPageContainer>

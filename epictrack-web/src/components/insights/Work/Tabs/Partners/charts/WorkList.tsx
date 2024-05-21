@@ -11,7 +11,11 @@ import { exportToCsv } from "components/shared/MasterTrackTable/utils";
 import { FileDownload } from "@mui/icons-material";
 import { IconButton, Tooltip, Box } from "@mui/material";
 import { sort } from "utils";
-import { ETGridTitle } from "components/shared";
+import { ETGridTitle, IButton } from "components/shared";
+import Icons from "components/icons";
+import { IconProps } from "components/icons/type";
+
+const DownloadIcon: React.FC<IconProps> = Icons["DownloadIcon"];
 
 const WorkList = () => {
   const [pagination, setPagination] = React.useState({
@@ -34,9 +38,19 @@ const WorkList = () => {
       showNotification("Error fetching works", { type: "error" });
     }
   }, [error]);
-
   const federalInvolvements = useMemo(() => {
-    return Array.from(new Set(works.map((w) => w?.federal_involvement?.name)));
+    return Array.from(
+      new Set(
+        [...works]
+          .sort(
+            (a, b) =>
+              Number(a?.federal_involvement?.sort_order) -
+              Number(b?.federal_involvement?.sort_order)
+          )
+          .filter((p) => p.federal_involvement)
+          .map((w) => w?.federal_involvement?.name)
+      )
+    );
   }, [works]);
 
   const ministries = useMemo(() => {
@@ -153,11 +167,11 @@ const WorkList = () => {
         filterSelectOptions: indigenousNations,
         accessorFn: (row) => {
           return (
-            <ul>
-              {row.indigenous_works?.map((indigenous_work) => (
-                <li key={indigenous_work.id}>{indigenous_work.name}</li>
-              ))}
-            </ul>
+            <div style={{ wordWrap: "break-word", whiteSpace: "pre-wrap" }}>
+              {row.indigenous_works
+                ?.map((indigenous_work) => indigenous_work.name)
+                .join(", ")}
+            </div>
           );
         },
         Filter: ({ header, column }) => {
@@ -215,7 +229,7 @@ const WorkList = () => {
           }}
         >
           <Tooltip title="Export to csv">
-            <IconButton
+            <IButton
               onClick={() =>
                 exportToCsv({
                   table,
@@ -224,8 +238,8 @@ const WorkList = () => {
                 })
               }
             >
-              <FileDownload />
-            </IconButton>
+              <DownloadIcon className="icon" />
+            </IButton>
           </Tooltip>
         </Box>
       )}

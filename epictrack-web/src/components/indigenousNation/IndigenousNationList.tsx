@@ -13,7 +13,7 @@ import { MRT_ColumnDef } from "material-react-table";
 import indigenousNationService from "../../services/indigenousNationService/indigenousNationService";
 import { FirstNation } from "../../models/firstNation";
 import MasterTrackTable from "../shared/MasterTrackTable";
-import { ETCaption2, ETGridTitle, ETPageContainer } from "../shared";
+import { ETCaption2, ETGridTitle, ETPageContainer, IButton } from "../shared";
 import IndigenousNationForm from "./IndigenousNationForm";
 import { Staff } from "../../models/staff";
 import staffService from "../../services/staffService/staffService";
@@ -30,8 +30,6 @@ import { debounce } from "lodash";
 import { Palette } from "styles/theme";
 import { useCachedState } from "hooks/useCachedFilters";
 import { ColumnFilter } from "components/shared/MasterTrackTable/type";
-import { exportToCsv } from "../shared/MasterTrackTable/utils";
-import FileDownload from "@mui/icons-material/FileDownload";
 
 const firstNationsColumnFiltersCacheKey =
   "first-nations-listing-column-filters";
@@ -278,42 +276,23 @@ export default function IndigenousNationList() {
               isLoading: ctx.loading,
               showGlobalFilter: true,
             }}
+            tableName="first-nations-listing"
+            enableExport
             renderTopToolbarCustomActions={({ table }) => (
-              <Box
-                sx={{
-                  width: "100%",
-                  display: "flex",
-                  justifyContent: "right",
-                }}
+              <Restricted
+                allowed={[ROLES.CREATE]}
+                errorProps={{ disabled: true }}
               >
-                <Restricted
-                  allowed={[ROLES.CREATE]}
-                  errorProps={{ disabled: true }}
+                <Button
+                  onClick={() => {
+                    ctx.setShowModalForm(true);
+                    setIndigenousNationID(undefined);
+                  }}
+                  variant="contained"
                 >
-                  <Button
-                    onClick={() => {
-                      ctx.setShowModalForm(true);
-                      setIndigenousNationID(undefined);
-                    }}
-                    variant="contained"
-                  >
-                    Create First Nation
-                  </Button>
-                </Restricted>
-                <Tooltip title="Export to csv">
-                  <IconButton
-                    onClick={() =>
-                      exportToCsv({
-                        table,
-                        downloadDate: new Date().toISOString(),
-                        filenamePrefix: "first-nations-listing",
-                      })
-                    }
-                  >
-                    <FileDownload />
-                  </IconButton>
-                </Tooltip>
-              </Box>
+                  Create First Nation
+                </Button>
+              </Restricted>
             )}
             onCacheFilters={handleCacheFilters}
           />

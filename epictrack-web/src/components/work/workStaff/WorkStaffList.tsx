@@ -6,14 +6,22 @@ import workService from "../../../services/workService/workService";
 import MasterTrackTable from "../../shared/MasterTrackTable";
 import { useCachedState } from "hooks/useCachedFilters";
 import { ColumnFilter } from "components/shared/MasterTrackTable/type";
-import { ETPageContainer } from "components/shared";
+import {
+  ETGridTitle,
+  ETPageContainer,
+  ETParagraph,
+  IButton,
+} from "components/shared";
 import { WorkStaffRole } from "models/role";
 import { exportToCsv } from "components/shared/MasterTrackTable/utils";
-import { FileDownload } from "@mui/icons-material";
+import Icons from "components/icons";
+import { IconProps } from "components/icons/type";
+
+const DownloadIcon: React.FC<IconProps> = Icons["DownloadIcon"];
 
 const workStaffListColumnFiltersCacheKey = "work-staff-listing-column-filters";
 const WorkStaffList = () => {
-  const [wsData, setwsData] = React.useState<WorkStaff[]>([]);
+  const [workStaffData, setWorkStaffData] = React.useState<WorkStaff[]>([]);
   const [loading, setLoading] = React.useState<boolean>(false);
   const [columnFilters, setColumnFilters] = useCachedState<ColumnFilter[]>(
     workStaffListColumnFiltersCacheKey,
@@ -25,7 +33,7 @@ const WorkStaffList = () => {
     try {
       const workStaffingResult = await workService.getWorkStaffDetails();
       if (workStaffingResult.status === 200) {
-        setwsData(workStaffingResult.data as WorkStaff[]);
+        setWorkStaffData(workStaffingResult.data as WorkStaff[]);
       }
     } catch (error) {
       console.error("Work Staffing List: ", error);
@@ -38,114 +46,156 @@ const WorkStaffList = () => {
     getWorkStaffAllocation();
   }, []);
 
-  const uniquestaff = useMemo(() => {
-    let uniquestaff: any[] = [];
-    wsData.forEach((value, index) => {
-      if (value.staff.length > 0) {
-        const roles = value.staff
-          .filter(
-            (p) =>
-              ![
-                WorkStaffRole.TEAM_LEAD,
-                WorkStaffRole.RESPONSIBLE_EPD,
-              ].includes(p.role.id)
-          )
-          .map((p) => p.role.name)
-          .filter(
-            (ele, index, arr) => arr.findIndex((t) => t === ele) === index
-          );
-        uniquestaff = [...uniquestaff, ...roles].filter(
-          (ele, index, arr) => arr.findIndex((t) => t === ele) === index
-        );
-      }
-    });
-    return uniquestaff;
-  }, [wsData]);
-  console.log(uniquestaff);
+  let uniquestaff: any[] = [];
+  workStaffData.forEach((value, index) => {
+    if (value.staff.length > 0) {
+      const roles = value.staff
+        .filter(
+          (person) =>
+            ![WorkStaffRole.TEAM_LEAD, WorkStaffRole.RESPONSIBLE_EPD].includes(
+              person.role.id
+            )
+        )
+        .map((person) => person.role.name)
+        .filter((ele, index, arr) => arr.findIndex((t) => t === ele) === index);
+      uniquestaff = [...uniquestaff, ...roles].filter(
+        (ele, index, arr) => arr.findIndex((t) => t === ele) === index
+      );
+    }
+  });
+
   const setRoleColumns = React.useCallback(() => {
     let columns: Array<MRT_ColumnDef<WorkStaff>> = [];
-    if (wsData && wsData.length > 0) {
+    if (workStaffData && workStaffData.length > 0) {
       columns = uniquestaff.map((rolename: any, index: number) => {
         return {
           header: rolename,
           accessorFn: (row: any) =>
             `${row.staff
-              .filter((p: { role: { name: any } }) => p.role.name === rolename)
-              .map(
-                (p: { first_name: string; last_name: string }) =>
-                  `${p.first_name} ${p.last_name}`
+              .filter(
+                (person: { role: { name: any } }) =>
+                  person.role.name === rolename
               )
-              .join(", ")}`,
+              .map(
+                (person: { first_name: string; last_name: string }) =>
+                  `${person.last_name} ${person.first_name}`
+              )
+              .join("; ")}`,
           enableHiding: false,
           enableColumnFilter: true,
+          Cell: ({ row, renderedCellValue }) => {
+            const staff = row.original.staff
+              .filter(
+                (person: { role: { name: any } }) =>
+                  person.role.name === rolename
+              )
+              .map(
+                (person: { first_name: string; last_name: string }) =>
+                  `${person.last_name} ${person.first_name}`
+              )
+              .join("; ");
+
+            return (
+              <ETParagraph enableTooltip enableEllipsis tooltip={staff}>
+                {renderedCellValue}
+              </ETParagraph>
+            );
+          },
         } as MRT_ColumnDef<WorkStaff>;
       });
     }
     return columns;
-  }, [wsData, uniquestaff]);
+  }, [workStaffData, uniquestaff]);
 
   const projectFilter = React.useMemo(
     () =>
-      wsData
-        .filter((p) => p.project && p.project.name)
-        .map((p) => p.project.name)
+      workStaffData
+        .filter((person) => person.project && person.project.name)
+        .map((person) => person.project.name)
         .filter((ele, index, arr) => arr.findIndex((t) => t === ele) === index),
-    [wsData]
+    [workStaffData]
   );
 
   const titleFilter = React.useMemo(
     () =>
-      wsData
+      workStaffData
         .filter((p) => p.title)
         .map((p) => p.title)
         .filter((ele, index, arr) => arr.findIndex((t) => t === ele) === index),
-    [wsData]
+    [workStaffData]
   );
 
   const teamFilter = React.useMemo(
     () =>
-      wsData
-        .filter((p) => p.eao_team)
-        .map((p) => p.eao_team.name)
+      workStaffData
+        .filter((person) => person.eao_team)
+        .map((person) => person.eao_team.name)
         .filter((ele, index, arr) => arr.findIndex((t) => t === ele) === index),
-    [wsData]
+    [workStaffData]
   );
 
   const responsibleEpdFilter = React.useMemo(
     () =>
-      wsData
-        .filter((p) => p.responsible_epd)
+      workStaffData
+        .filter((person) => person.responsible_epd)
         .map(
-          (p) =>
-            `${p.responsible_epd.first_name} ${p.responsible_epd.last_name}`
+          (person) =>
+            `${person.responsible_epd.first_name} ${person.responsible_epd.last_name}`
         )
         .filter((ele, index, arr) => arr.findIndex((t) => t === ele) === index),
-    [wsData]
+    [workStaffData]
   );
 
   const workLeadFilter = React.useMemo(
     () =>
-      wsData
-        .filter((p) => p.responsible_epd)
-        .map((p) => `${p.work_lead?.first_name} ${p.work_lead?.last_name}`)
+      workStaffData
+        .filter((person) => person.responsible_epd)
+        .map(
+          (person) =>
+            `${person.work_lead?.first_name} ${person.work_lead?.last_name}`
+        )
         .filter((ele, index, arr) => arr.findIndex((t) => t === ele) === index),
-    [wsData]
+    [workStaffData]
   );
 
   const columns = React.useMemo<MRT_ColumnDef<WorkStaff>[]>(
     () => [
+      {
+        accessorKey: "title",
+        header: "Work Title",
+        filterVariant: "multi-select",
+        filterSelectOptions: titleFilter,
+        Cell: ({ row, renderedCellValue }) => {
+          return (
+            <ETGridTitle
+              to={`/work-plan?work_id=${row.original.id}`}
+              titleText={row.original.title}
+              enableTooltip
+              enableEllipsis
+              tooltip={row.original.title}
+            >
+              {renderedCellValue}
+            </ETGridTitle>
+          );
+        },
+      },
       {
         accessorKey: "project.name",
         header: "Project",
         enableHiding: false,
         filterVariant: "multi-select",
         filterSelectOptions: projectFilter,
-      },
-      {
-        accessorKey: "title",
-        header: "Work Title",
-        filterVariant: "multi-select",
-        filterSelectOptions: titleFilter,
+        Cell: ({ row, renderedCellValue }) => {
+          return (
+            <ETParagraph
+              enableTooltip
+              enableEllipsis
+              tooltip={row.original.project.name}
+            >
+              {renderedCellValue}
+            </ETParagraph>
+          );
+        },
       },
       {
         accessorFn: (row: WorkStaff) =>
@@ -194,7 +244,7 @@ const WorkStaffList = () => {
       <Grid item xs={12}>
         <MasterTrackTable
           columns={columns}
-          data={wsData}
+          data={workStaffData}
           initialState={{
             sorting: [
               {
@@ -208,29 +258,8 @@ const WorkStaffList = () => {
             isLoading: loading,
             showGlobalFilter: true,
           }}
-          renderTopToolbarCustomActions={({ table }) => (
-            <Box
-              sx={{
-                width: "100%",
-                display: "flex",
-                justifyContent: "right",
-              }}
-            >
-              <Tooltip title="Export to csv">
-                <IconButton
-                  onClick={() =>
-                    exportToCsv({
-                      table,
-                      downloadDate: new Date().toISOString(),
-                      filenamePrefix: "work-staff-listing",
-                    })
-                  }
-                >
-                  <FileDownload />
-                </IconButton>
-              </Tooltip>
-            </Box>
-          )}
+          tableName={"work-staff-listing"}
+          enableExport
           onCacheFilters={handleCacheFilters}
         />
       </Grid>

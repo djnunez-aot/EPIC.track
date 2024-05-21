@@ -49,6 +49,12 @@ class KeycloakService:
         return KeycloakService._request_keycloak(f'users/{user_id}/groups/{group_id}', HttpMethod.DELETE)
 
     @staticmethod
+    def get_user_groups(user_id):
+        """Get groups of a user by user ID"""
+        response = KeycloakService._request_keycloak(f'users/{user_id}/groups')
+        return response.json()
+
+    @staticmethod
     def _request_keycloak(relative_url, http_method: HttpMethod = HttpMethod.GET, data=None):
         """Common method to request keycloak"""
         base_url = current_app.config.get('KEYCLOAK_BASE_URL')
@@ -61,12 +67,15 @@ class KeycloakService:
         }
 
         url = f'{base_url}/auth/admin/realms/{realm}/{relative_url}'
+
         if http_method == HttpMethod.GET:
             response = requests.get(url, headers=headers, timeout=timeout)
-        if http_method == HttpMethod.PUT:
+        elif http_method == HttpMethod.PUT:
             response = requests.put(url, headers=headers, data=data, timeout=timeout)
-        if http_method == HttpMethod.DELETE:
+        elif http_method == HttpMethod.DELETE:
             response = requests.delete(url, headers=headers, timeout=timeout)
+        else:
+            raise ValueError('Invalid HTTP method')
         response.raise_for_status()
         return response
 

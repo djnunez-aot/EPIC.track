@@ -11,7 +11,7 @@ import {
 } from "@mui/material";
 import { MRT_ColumnDef } from "material-react-table";
 import MasterTrackTable from "../shared/MasterTrackTable";
-import { ETCaption2, ETGridTitle, ETPageContainer } from "../shared";
+import { ETCaption2, ETGridTitle, ETPageContainer, IButton } from "../shared";
 import ProponentForm from "./ProponentForm";
 import { Staff } from "../../models/staff";
 import staffService from "../../services/staffService/staffService";
@@ -33,7 +33,10 @@ import { debounce } from "lodash";
 import { ColumnFilter } from "components/shared/MasterTrackTable/type";
 import { useCachedState } from "hooks/useCachedFilters";
 import { exportToCsv } from "components/shared/MasterTrackTable/utils";
-import { FileDownload } from "@mui/icons-material";
+import Icons from "components/icons";
+import { IconProps } from "components/icons/type";
+
+const DownloadIcon: React.FC<IconProps> = Icons["DownloadIcon"];
 
 const proponentsListColumnFiltersCacheKey = "proponents-listing-column-filters";
 
@@ -244,42 +247,23 @@ export default function ProponentList() {
               isLoading: ctx.loading,
               showGlobalFilter: true,
             }}
+            tableName={"proponent-listing"}
+            enableExport
             renderTopToolbarCustomActions={({ table }) => (
-              <Box
-                sx={{
-                  width: "100%",
-                  display: "flex",
-                  justifyContent: "right",
-                }}
+              <Restricted
+                allowed={[ROLES.CREATE]}
+                errorProps={{ disabled: true }}
               >
-                <Restricted
-                  allowed={[ROLES.CREATE]}
-                  errorProps={{ disabled: true }}
+                <Button
+                  onClick={() => {
+                    ctx.setShowModalForm(true);
+                    setProponentId(undefined);
+                  }}
+                  variant="contained"
                 >
-                  <Button
-                    onClick={() => {
-                      ctx.setShowModalForm(true);
-                      setProponentId(undefined);
-                    }}
-                    variant="contained"
-                  >
-                    Create Proponent
-                  </Button>
-                </Restricted>
-                <Tooltip title="Export to csv">
-                  <IconButton
-                    onClick={() =>
-                      exportToCsv({
-                        table,
-                        downloadDate: new Date().toISOString(),
-                        filenamePrefix: "proponent-listing",
-                      })
-                    }
-                  >
-                    <FileDownload />
-                  </IconButton>
-                </Tooltip>
-              </Box>
+                  Create Proponent
+                </Button>
+              </Restricted>
             )}
             onCacheFilters={handleCacheFilters}
           />

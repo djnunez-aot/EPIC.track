@@ -3,12 +3,10 @@ import { MRT_ColumnDef } from "material-react-table";
 import { Box, Button, Grid, IconButton, Tooltip } from "@mui/material";
 import { Work } from "../../models/work";
 import MasterTrackTable from "../shared/MasterTrackTable";
-import { ETGridTitle, ETPageContainer } from "../shared";
+import { ETGridTitle, ETPageContainer, IButton } from "../shared";
 import workService from "../../services/workService/workService";
 import { ETChip } from "../shared/chip/ETChip";
 import { Link } from "react-router-dom";
-import { IconProps } from "../icons/type";
-import Icons from "../icons";
 import TableFilter from "../shared/filterSelect/TableFilter";
 import { getSelectFilterOptions } from "../shared/MasterTrackTable/utils";
 import { Restricted } from "../shared/restricted";
@@ -21,9 +19,11 @@ import { useCachedState } from "hooks/useCachedFilters";
 import { ColumnFilter } from "components/shared/MasterTrackTable/type";
 import { sort } from "utils";
 import { exportToCsv } from "components/shared/MasterTrackTable/utils";
-import { FileDownload } from "@mui/icons-material";
+import Icons from "components/icons";
+import { IconProps } from "components/icons/type";
 
 const GoToIcon: React.FC<IconProps> = Icons["GoToIcon"];
+const DownloadIcon: React.FC<IconProps> = Icons["DownloadIcon"];
 
 const WorkList = () => {
   const [workId, setWorkId] = React.useState<number>();
@@ -345,42 +345,23 @@ const WorkList = () => {
               isLoading: loadingWorks,
               showGlobalFilter: true,
             }}
+            tableName="work-listing"
+            enableExport
             renderTopToolbarCustomActions={({ table }) => (
-              <Box
-                sx={{
-                  width: "100%",
-                  display: "flex",
-                  justifyContent: "right",
-                }}
+              <Restricted
+                allowed={[ROLES.CREATE]}
+                errorProps={{ disabled: true }}
               >
-                <Restricted
-                  allowed={[ROLES.CREATE]}
-                  errorProps={{ disabled: true }}
+                <Button
+                  onClick={() => {
+                    setShowWorkDialogForm(true);
+                    setWorkId(undefined);
+                  }}
+                  variant="contained"
                 >
-                  <Button
-                    onClick={() => {
-                      setShowWorkDialogForm(true);
-                      setWorkId(undefined);
-                    }}
-                    variant="contained"
-                  >
-                    Create Work
-                  </Button>
-                </Restricted>
-                <Tooltip title="Export to csv">
-                  <IconButton
-                    onClick={() =>
-                      exportToCsv({
-                        table,
-                        downloadDate: new Date().toISOString(),
-                        filenamePrefix: "all-works-listing",
-                      })
-                    }
-                  >
-                    <FileDownload />
-                  </IconButton>
-                </Tooltip>
-              </Box>
+                  Create Work
+                </Button>
+              </Restricted>
             )}
             onCacheFilters={handleCacheFilters}
           />

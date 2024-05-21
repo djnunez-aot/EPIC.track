@@ -107,3 +107,22 @@ class TaskEventResponseSchema(
         model = TaskEvent
         include_fk = True
         unknown = EXCLUDE
+
+
+class TaskEventByStaffResponseSchema(
+    TaskEventResponseSchema
+):  # pylint: disable=too-many-ancestors,too-few-public-methods
+    """TaskEvent by Staff model schema class"""
+
+    work = fields.Method("get_work")
+
+    def get_work(self, obj):
+        """Get work value"""
+        project_name = obj.work_phase.work.project.name
+        work_type_name = obj.work_phase.work.work_type.name
+        simple_title = obj.work_phase.work.simple_title
+        return {
+            "id": obj.work_phase.work.id,
+            "title": f'{project_name} - {work_type_name} - {simple_title}',
+            'notes': obj.work_phase.work.first_nation_notes,
+        }
