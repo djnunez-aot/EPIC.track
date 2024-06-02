@@ -11,7 +11,7 @@ import {
 import Moment from "moment";
 import { WorkplanContext } from "../WorkPlanContext";
 import { MRT_RowSelectionState } from "material-react-table";
-import { dateUtils } from "../../../utils";
+import { dateUtils, naturalSortCollator } from "../../../utils";
 import { Box, Button, Divider, Grid, Tooltip, Typography } from "@mui/material";
 import { Palette } from "../../../styles/theme";
 import { IconProps } from "../../icons/type";
@@ -76,6 +76,7 @@ const EventList = () => {
     selectedWorkPhase,
     setSelectedWorkPhase,
     setWorkPhases,
+    workPhases,
     team,
     work,
     setWork,
@@ -118,6 +119,7 @@ const EventList = () => {
       openExtensionWarningBox,
     [selectedWorkPhase, openExtensionWarningBox]
   );
+
   const isEventFormFieldLocked = React.useMemo(() => {
     return !!milestoneEvent?.actual_date;
   }, [milestoneEvent]);
@@ -128,6 +130,7 @@ const EventList = () => {
       dispatch(showConfetti(false));
     }, 5000);
   }, [isConfettiShown]);
+
   React.useEffect(() => {
     getCombinedEvents();
   }, [work?.id, selectedWorkPhase?.work_phase.id]);
@@ -228,7 +231,7 @@ const EventList = () => {
                 (eventX.type === EVENT_TYPE.TASK &&
                   eventY.type === EVENT_TYPE.TASK)
               ) {
-                return eventX.id < eventY.id ? -1 : 1;
+                return naturalSortCollator.compare(eventX.name, eventY.name);
               }
               // MILESTONE should shows first, then TASK
               if (
@@ -316,21 +319,23 @@ const EventList = () => {
       );
       const workPhases = workPhasesResult.data as WorkPhaseAdditionalInfo[];
       setWorkPhases(workPhases);
-      // if (selectedWorkPhase) {
-      //   const selectedWp = workPhases.filter(
-      //     (p) => p.work_phase.id === selectedWorkPhase.work_phase.id
-      //   )[0];
-      //   setSelectedWorkPhase(selectedWp);
-      // }
       setLoading(false);
     }
   }, []);
-  const getWorkById = async () => {
+
+  const getWorkById = React.useCallback(async () => {
     if (work?.id) {
       const result = await workService.getById(String(work.id));
-      setWork(result.data as Work);
+      const workResult = result.data as Work;
+      setWork(workResult);
+      if (selectedWorkPhase) {
+        const selectedWp = workPhases.filter(
+          (p) => p.work_phase.id === workResult.current_work_phase_id
+        )[0];
+        setSelectedWorkPhase(selectedWp);
+      }
     }
-  };
+  }, [workPhases]);
 
   const onSaveHandler = () => {
     setShowTaskForm(false);
@@ -387,7 +392,7 @@ const EventList = () => {
       });
     }
   };
-  const downloadPDFReport = React.useCallback(async () => {
+  const handleExportToSheet = React.useCallback(async () => {
     try {
       const binaryReponse = await workService.downloadWorkplan(
         Number(selectedWorkPhase?.work_phase.id)
@@ -406,6 +411,31 @@ const EventList = () => {
       });
     } catch (error) {}
   }, [work?.id, selectedWorkPhase?.work_phase.phase.id]);
+
+  const handleTaskFileUpload = async (
+    event: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    const file = event.target.files?.[0];
+    if (!file || !selectedWorkPhase?.work_phase.id) {
+      return;
+    }
+    const formData = new FormData();
+    formData.append("file", file);
+    try {
+      await taskEventService.importTasks(selectedWorkPhase?.work_phase.id, {
+        template_file: file,
+      });
+      showNotification("Tasks imported successfully", {
+        type: "success",
+      });
+      getCombinedEvents();
+    } catch (e) {
+      const message = getErrorMessage(e);
+      showNotification(message, {
+        type: "error",
+      });
+    }
+  };
 
   const onRowClick = async (event: any, row: EventsGridModel) => {
     event.preventDefault();
@@ -875,11 +905,31 @@ const EventList = () => {
               errorProps={{ disabled: true }}
               exception={userIsTeamMember}
             >
-              <IButton onClick={downloadPDFReport}>
+              <IButton onClick={handleExportToSheet}>
                 <DownloadIcon className="icon" />
               </IButton>
             </Restricted>
           </Tooltip>
+          <Restricted
+            allowed={[ROLES.EXTENDED_EDIT]}
+            exception={userIsTeamMember}
+          >
+            <Tooltip title="Import tasks from an excel sheet">
+              <Button
+                variant="outlined"
+                component="label"
+                startIcon={<ImportFileIcon />}
+              >
+                Import from excel
+                <input
+                  type="file"
+                  hidden
+                  accept=".xls, .xlsx"
+                  onChange={handleTaskFileUpload}
+                />
+              </Button>
+            </Tooltip>
+          </Restricted>
         </Grid>
       </Grid>
       <Grid item xs={12}>
@@ -902,11 +952,6 @@ const EventList = () => {
         isActionsRequired
         onCancel={() => onCancelHandler()}
         formId="task-form"
-        sx={{
-          "& .MuiDialogContent-root": {
-            padding: 0,
-          },
-        }}
       >
         <TaskForm onSave={onSaveHandler} taskEvent={taskEvent} />
       </TrackDialog>
@@ -921,11 +966,6 @@ const EventList = () => {
         isActionsRequired
         onCancel={() => onCancelHandler()}
         formId="event-form"
-        sx={{
-          "& .MuiDialogContent-root": {
-            padding: 0,
-          },
-        }}
         additionalActions={deleteAction}
       >
         <EventForm
@@ -946,11 +986,6 @@ const EventList = () => {
         isCancelRequired={false}
         onCancel={() => onCancelHandler()}
         isActionsRequired
-        sx={{
-          "& .MuiDialogContent-root": {
-            padding: 0,
-          },
-        }}
       >
         <ImportTaskEvent onSave={onTemplateFormSaveHandler} />
       </TrackDialog>
