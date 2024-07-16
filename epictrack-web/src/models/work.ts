@@ -18,6 +18,7 @@ export interface Work extends MasterBase {
   start_date: string;
   anticipated_decision_date: string;
   decision_date: string;
+  work_decision_date: string;
   first_nation_notes: string;
   status_notes: string;
   work_state: string;
@@ -100,3 +101,12 @@ export const defaultWork = {
   report_description:
     "On [date], [initiator] submitted a [work type] to [rationale/desired result/description of change].",
 };
+
+export enum WorkStateEnum {
+  SUSPENDED,
+  IN_PROGRESS,
+  WITHDRAWN,
+  TERMINATED,
+  CLOSED,
+  COMPLETED,
+}
